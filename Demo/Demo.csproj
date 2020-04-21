@@ -879,6 +879,10 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\EditorCtrl\EditorCtrl.csproj">
+      <Project>{8307dffb-7e57-42b4-b402-601a80923f4e}</Project>
+      <Name>EditorCtrl</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Editor\Editor.csproj">
       <Project>{ee03a6af-2937-4893-80f4-dd71f099a76c}</Project>
       <Name>Editor</Name>

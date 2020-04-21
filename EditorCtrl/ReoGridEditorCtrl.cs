@@ -55,25 +55,730 @@ namespace unvell.ReoGrid.Editor
 	/// <summary>
 	/// Represents Editor of ReoGrid component.
 	/// </summary>
-	public partial class ReoGridEditor : Form
+	public partial class ReoGridEditorCtrl : UserControl
 	{
-		//private NamedRangeManageForm nameManagerForm = null;
+		#region Constructor
 
-		public ReoGridEditorCtrl EditorCtrl
+		private NamedRangeManageForm nameManagerForm = null;
+
+		public ReoGridControl GridCtrl
 		{
-			get { return editorCtrl; }
+			get { return grid; }
 		}
-
 		/// <summary>
 		/// Create instance of ReoGrid Editor.
 		/// </summary>
-		public ReoGridEditor()
+		public ReoGridEditorCtrl()
 		{
 			InitializeComponent();
 
+			NewDocumentOnLoad = true;
+
+			SuspendLayout();
+			isUIUpdating = true;
+
+			SetupUILanguage();
+
+			fontToolStripComboBox.Text = Worksheet.DefaultStyle.FontName;
+
+			fontSizeToolStripComboBox.Text = Worksheet.DefaultStyle.FontSize.ToString();
+			fontSizeToolStripComboBox.Items.AddRange(FontUIToolkit.FontSizeList.Select(f => (object)f).ToArray());
+
+			backColorPickerToolStripButton.CloseOnClick = true;
+			borderColorPickToolStripItem.CloseOnClick = true;
+			textColorPickToolStripItem.CloseOnClick = true;
+
+			this.undoToolStripButton.Enabled =
+				this.undoToolStripMenuItem.Enabled =
+				this.redoToolStripButton.Enabled =
+				this.redoToolStripMenuItem.Enabled =
+				this.repeatLastActionToolStripMenuItem.Enabled =
+				false;
+
+			zoomToolStripDropDownButton.Text = "100%";
+
+			isUIUpdating = false;
+
+			toolbarToolStripMenuItem.Click += (s, e) => fontToolStrip.Visible = toolStrip1.Visible = toolbarToolStripMenuItem.Checked;
+			formulaBarToolStripMenuItem.CheckedChanged += (s, e) => formulaBar.Visible = formulaBarToolStripMenuItem.Checked;
+			statusBarToolStripMenuItem.CheckedChanged += (s, e) => statusStrip1.Visible = statusBarToolStripMenuItem.Checked;
+			sheetSwitcherToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.grid.SetSettings(WorkbookSettings.View_ShowSheetTabControl, sheetSwitcherToolStripMenuItem.Checked);
+
+			showHorizontaScrolllToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.grid.SetSettings(WorkbookSettings.View_ShowHorScroll, showHorizontaScrolllToolStripMenuItem.Checked);
+			showVerticalScrollbarToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.grid.SetSettings(WorkbookSettings.View_ShowVerScroll, showVerticalScrollbarToolStripMenuItem.Checked);
+
+			showGridLinesToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_ShowGridLine, showGridLinesToolStripMenuItem.Checked);
+			showPageBreakToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_ShowPageBreaks, showPageBreakToolStripMenuItem.Checked);
+			showFrozenLineToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_ShowFrozenLine, showFrozenLineToolStripMenuItem.Checked);
+			showRowHeaderToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_ShowRowHeader, showRowHeaderToolStripMenuItem.Checked);
+			showColumnHeaderToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_ShowColumnHeader, showColumnHeaderToolStripMenuItem.Checked);
+			showRowOutlineToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_AllowShowRowOutlines, showRowOutlineToolStripMenuItem.Checked);
+			showColumnOutlineToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.View_AllowShowColumnOutlines, showColumnOutlineToolStripMenuItem.Checked);
+
+			sheetReadonlyToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.Edit_Readonly, sheetReadonlyToolStripMenuItem.Checked);
+
+			resetAllPageBreaksToolStripMenuItem.Click += (s, e) => this.CurrentWorksheet.ResetAllPageBreaks();
+			resetAllPageBreaksToolStripMenuItem1.Click += (s, e) => this.CurrentWorksheet.ResetAllPageBreaks();
+
+			this.grid.WorksheetInserted += (ss, ee) =>
+			{
+				var worksheet = ee.Worksheet;
+
+				worksheet.SelectionRangeChanged += grid_SelectionRangeChanged;
+				worksheet.SelectionModeChanged += worksheet_SelectionModeChanged;
+				worksheet.SelectionStyleChanged += worksheet_SelectionModeChanged;
+				worksheet.SelectionForwardDirectionChanged += worksheet_SelectionForwardDirectionChanged;
+				worksheet.FocusPosStyleChanged += worksheet_SelectionModeChanged;
+				worksheet.CellsFrozen += UpdateMenuAndToolStripsWhenAction;
+				worksheet.Resetted += worksheet_Resetted;
+				worksheet.SettingsChanged += worksheet_SettingsChanged;
+				worksheet.Scaled += worksheet_GridScaled;
+			};
+
+			this.grid.WorksheetRemoved += (ss, ee) =>
+			{
+				var worksheet = ee.Worksheet;
+
+				worksheet.SelectionRangeChanged -= grid_SelectionRangeChanged;
+				worksheet.SelectionModeChanged -= worksheet_SelectionModeChanged;
+				worksheet.SelectionStyleChanged -= worksheet_SelectionModeChanged;
+				worksheet.SelectionForwardDirectionChanged -= worksheet_SelectionForwardDirectionChanged;
+				worksheet.FocusPosStyleChanged -= worksheet_SelectionModeChanged;
+				worksheet.CellsFrozen -= UpdateMenuAndToolStripsWhenAction;
+				worksheet.Resetted -= worksheet_Resetted;
+				worksheet.SettingsChanged -= worksheet_SettingsChanged;
+				worksheet.Scaled -= worksheet_GridScaled;
+			};
+
+			selModeNoneToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionMode = WorksheetSelectionMode.None;
+			selModeCellToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionMode = WorksheetSelectionMode.Cell;
+			selModeRangeToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionMode = WorksheetSelectionMode.Range;
+			selModeRowToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionMode = WorksheetSelectionMode.Row;
+			selModeColumnToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionMode = WorksheetSelectionMode.Column;
+
+			selStyleNoneToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionStyle = WorksheetSelectionStyle.None;
+			selStyleDefaultToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionStyle = WorksheetSelectionStyle.Default;
+			selStyleFocusRectToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionStyle = WorksheetSelectionStyle.FocusRect;
+
+			selDirRightToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionForwardDirection = SelectionForwardDirection.Right;
+			selDirDownToolStripMenuItem.Click += (s, e) => this.grid.CurrentWorksheet.SelectionForwardDirection = SelectionForwardDirection.Down;
+
+			zoomToolStripDropDownButton.TextChanged += zoomToolStripDropDownButton_TextChanged;
+
+			undoToolStripButton.Click += Undo;
+			redoToolStripButton.Click += Redo;
+			undoToolStripMenuItem.Click += Undo;
+			redoToolStripMenuItem.Click += Redo;
+
+			mergeRangeToolStripMenuItem.Click += MergeSelectionRange;
+			cellMergeToolStripButton.Click += MergeSelectionRange;
+			unmergeRangeToolStripMenuItem.Click += UnmergeSelectionRange;
+			unmergeRangeToolStripButton.Click += UnmergeSelectionRange;
+			mergeCellsToolStripMenuItem.Click += MergeSelectionRange;
+			unmergeCellsToolStripMenuItem.Click += UnmergeSelectionRange;
+			formatCellsToolStripMenuItem.Click += formatCellToolStripMenuItem_Click;
+			resizeToolStripMenuItem.Click += resizeToolStripMenuItem_Click;
+			textWrapToolStripButton.Click += textWrapToolStripButton_Click;
+
+			// todo
+			this.grid.ActionPerformed += (s, e) => UpdateMenuAndToolStripsWhenAction(s, e);
+			this.grid.Undid += (s, e) => UpdateMenuAndToolStripsWhenAction(s, e);
+			this.grid.Redid += (s, e) => UpdateMenuAndToolStripsWhenAction(s, e);
+
+			rowHeightToolStripMenuItem.Click += (s, e) =>
+			{
+				var worksheet = this.CurrentWorksheet;
+
+				using (SetWidthOrHeightDialog rowHeightForm = new SetWidthOrHeightDialog(RowOrColumn.Row))
+				{
+					rowHeightForm.Value = worksheet.GetRowHeight(worksheet.SelectionRange.Row);
+
+					if (rowHeightForm.ShowDialog() == DialogResult.OK)
+					{
+						this.grid.DoAction(new SetRowsHeightAction(worksheet.SelectionRange.Row,
+							worksheet.SelectionRange.Rows, (ushort)rowHeightForm.Value));
+					}
+				}
+			};
+
+			columnWidthToolStripMenuItem.Click += (s, e) =>
+			{
+				var worksheet = this.CurrentWorksheet;
+
+				using (SetWidthOrHeightDialog colWidthForm = new SetWidthOrHeightDialog(RowOrColumn.Column))
+				{
+					colWidthForm.Value = worksheet.GetColumnWidth(worksheet.SelectionRange.Col);
+
+					if (colWidthForm.ShowDialog() == DialogResult.OK)
+					{
+						this.grid.DoAction(new SetColumnsWidthAction(worksheet.SelectionRange.Col,
+							worksheet.SelectionRange.Cols, (ushort)colWidthForm.Value));
+					}
+				}
+			};
+
+			exportAsHtmlToolStripMenuItem.Click += (s, e) =>
+			{
+				using (SaveFileDialog sfd = new SaveFileDialog())
+				{
+					sfd.Filter = "HTML File(*.html;*.htm)|*.html;*.htm";
+					sfd.FileName = "Exported ReoGrid Worksheet";
+
+					if (sfd.ShowDialog() == DialogResult.OK)
+					{
+						using (FileStream fs = new FileStream(sfd.FileName, FileMode.Create))
+						{
+							this.CurrentWorksheet.ExportAsHTML(fs);
+						}
+
+						Process.Start(sfd.FileName);
+					}
+				}
+			};
+
+			editXMLToolStripMenuItem.Click += (s, e) =>
+			{
+				string filepath = null;
+
+				if (string.IsNullOrEmpty(this.CurrentFilePath))
+				{
+					if (string.IsNullOrEmpty(currentTempFilePath))
+					{
+						currentTempFilePath = Path.Combine(Path.GetTempPath(),
+							Path.GetFileNameWithoutExtension(Path.GetTempFileName()) + ".txt");
+					}
+					filepath = currentTempFilePath;
+				}
+				else if (!this.CurrentFilePath.EndsWith(".rgf")
+					&& !this.CurrentFilePath.EndsWith(".xml"))
+				{
+					MessageBox.Show(LangResource.Msg_Only_RGF_Edit_XML);
+					return;
+				}
+				else
+				{
+					if (MessageBox.Show(LangResource.Msg_Save_File_Immediately,
+						"Edit XML", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
+						== System.Windows.Forms.DialogResult.Cancel)
+					{
+						return;
+					}
+
+					filepath = this.CurrentFilePath;
+				}
+
+				using (var fs = new FileStream(filepath, FileMode.Create, FileAccess.Write))
+				{
+					this.CurrentWorksheet.Save(fs);
+				}
+
+				Process p = Process.Start("notepad.exe", filepath);
+				p.WaitForExit();
+
+				if (p.ExitCode == 0)
+				{
+					this.CurrentWorksheet.Load(filepath);
+				}
+			};
+
+			saveToolStripButton.Click += (s, e) => SaveDocument();
+			saveToolStripMenuItem.Click += (s, e) => SaveDocument();
+			saveAsToolStripMenuItem.Click += (s, e) => SaveAsDocument();
+
+			groupRowsToolStripMenuItem.Click += groupRowsToolStripMenuItem_Click;
+			groupRowsToolStripMenuItem1.Click += groupRowsToolStripMenuItem_Click;
+			ungroupRowsToolStripMenuItem.Click += ungroupRowsToolStripMenuItem_Click;
+			ungroupRowsToolStripMenuItem1.Click += ungroupRowsToolStripMenuItem_Click;
+			ungroupAllRowsToolStripMenuItem.Click += ungroupAllRowsToolStripMenuItem_Click;
+			ungroupAllRowsToolStripMenuItem1.Click += ungroupAllRowsToolStripMenuItem_Click;
+
+			groupColumnsToolStripMenuItem.Click += groupColumnsToolStripMenuItem_Click;
+			groupColumnsToolStripMenuItem1.Click += groupColumnsToolStripMenuItem_Click;
+			ungroupColumnsToolStripMenuItem.Click += ungroupColumnsToolStripMenuItem_Click;
+			ungroupColumnsToolStripMenuItem1.Click += ungroupColumnsToolStripMenuItem_Click;
+			ungroupAllColumnsToolStripMenuItem.Click += ungroupAllColumnsToolStripMenuItem_Click;
+			ungroupAllColumnsToolStripMenuItem1.Click += ungroupAllColumnsToolStripMenuItem_Click;
+
+			hideRowsToolStripMenuItem.Click += (s, e) => this.grid.DoAction(new HideRowsAction(
+				this.CurrentWorksheet.SelectionRange.Row, this.CurrentWorksheet.SelectionRange.Rows));
+			unhideRowsToolStripMenuItem.Click += (s, e) => this.grid.DoAction(new UnhideRowsAction(
+				this.CurrentWorksheet.SelectionRange.Row, this.CurrentWorksheet.SelectionRange.Rows));
+
+			hideColumnsToolStripMenuItem.Click += (s, e) => this.grid.DoAction(new HideColumnsAction(
+				this.CurrentWorksheet.SelectionRange.Col, this.CurrentWorksheet.SelectionRange.Cols));
+			unhideColumnsToolStripMenuItem.Click += (s, e) => this.grid.DoAction(new UnhideColumnsAction(
+				this.CurrentWorksheet.SelectionRange.Col, this.CurrentWorksheet.SelectionRange.Cols));
+
+			// freeze to cell / edges
+			freezeToCellToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.LeftTop);
+			freezeToLeftToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.Left);
+			freezeToTopToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.Top);
+			freezeToRightToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.Right);
+			freezeToBottomToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.Bottom);
+			freezeToLeftTopToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.LeftTop);
+			freezeToLeftBottomToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.LeftBottom);
+			freezeToRightTopToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.RightTop);
+			freezeToRightBottomToolStripMenuItem.Click += (s, e) => FreezeToEdge(FreezeArea.RightBottom);
+
+			grid.GotFocus += (s, e) =>
+				{
+					cutToolStripButton.Enabled =
+					cutToolStripMenuItem.Enabled =
+					pasteToolStripButton.Enabled =
+					pasteToolStripMenuItem.Enabled =
+					copyToolStripButton.Enabled =
+					copyToolStripMenuItem.Enabled =
+					undoToolStripButton.Enabled =
+					undoToolStripMenuItem.Enabled =
+					redoToolStripButton.Enabled =
+					redoToolStripMenuItem.Enabled =
+					repeatLastActionToolStripMenuItem.Enabled =
+					rowCutToolStripMenuItem.Enabled =
+					rowCopyToolStripMenuItem.Enabled =
+					rowPasteToolStripMenuItem.Enabled =
+					colCutToolStripMenuItem.Enabled =
+					colCopyToolStripMenuItem.Enabled =
+					colPasteToolStripMenuItem.Enabled =
+						true;
+				};
+
+			grid.LostFocus += (s, e) =>
+			{
+				cutToolStripButton.Enabled =
+				cutToolStripMenuItem.Enabled =
+				pasteToolStripButton.Enabled =
+				pasteToolStripMenuItem.Enabled =
+				copyToolStripButton.Enabled =
+				copyToolStripMenuItem.Enabled =
+				undoToolStripButton.Enabled =
+				undoToolStripMenuItem.Enabled =
+				redoToolStripButton.Enabled =
+				redoToolStripMenuItem.Enabled =
+				repeatLastActionToolStripMenuItem.Enabled =
+				rowCutToolStripMenuItem.Enabled =
+				rowCopyToolStripMenuItem.Enabled =
+				rowPasteToolStripMenuItem.Enabled =
+				colCutToolStripMenuItem.Enabled =
+				colCopyToolStripMenuItem.Enabled =
+				colPasteToolStripMenuItem.Enabled =
+					false;
+			};
+
+			defineNamedRangeToolStripMenuItem.Click += (s, e) =>
+			{
+				var sheet = this.CurrentWorksheet;
+
+				var name = sheet.GetNameByRange(sheet.SelectionRange);
+				NamedRange namedRange = null;
+
+				if (!string.IsNullOrEmpty(name))
+				{
+					namedRange = sheet.GetNamedRange(name);
+				}
+
+				using (DefineNamedRangeDialog dnrf = new DefineNamedRangeDialog())
+				{
+					dnrf.Range = sheet.SelectionRange;
+					if (namedRange != null)
+					{
+						dnrf.RangeName = name;
+						dnrf.Comment = namedRange.Comment;
+					}
+
+					if (dnrf.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+					{
+						var newName = dnrf.RangeName;
+
+						var existedRange = sheet.GetNamedRange(newName);
+						if (existedRange != null)
+						{
+							if (MessageBox.Show(this, LangRes.LangResource.Msg_Named_Range_Overwrite,
+								Application.ProductName, MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
+								== System.Windows.Forms.DialogResult.Cancel)
+							{
+								return;
+							}
+
+							sheet.UndefineNamedRange(newName);
+						}
+
+						var range = NamedRangeManageForm.DefineNamedRange(this, sheet, newName, dnrf.Comment, dnrf.Range);
+
+						if (this.formulaBar != null && this.formulaBar.Visible)
+						{
+							this.formulaBar.RefreshCurrentAddress();
+						}
+					}
+				}
+			};
+
+			this.nameManagerToolStripMenuItem.Click += (s, e) =>
+			{
+				if (this.nameManagerForm == null || this.nameManagerForm.IsDisposed)
+				{
+					this.nameManagerForm = new NamedRangeManageForm(this.grid);
+				}
+
+				this.nameManagerForm.Show(this);
+			};
+
+			tracePrecedentsToolStripMenuItem.Click += (s, e) => this.CurrentWorksheet.TraceCellPrecedents(this.CurrentWorksheet.FocusPos);
+			traceDependentsToolStripMenuItem.Click += (s, e) => this.CurrentWorksheet.TraceCellDependents(this.CurrentWorksheet.FocusPos);
+
+			removeAllArrowsToolStripMenuItem.Click += (s, e) => this.CurrentWorksheet.RemoveRangeAllTraceArrows(this.CurrentWorksheet.SelectionRange);
+			removePrecedentArrowsToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.IterateCells(this.CurrentWorksheet.SelectionRange, (r, c, cell) =>
+					this.CurrentWorksheet.RemoveCellTracePrecedents(cell));
+			removeDependentArrowsToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.IterateCells(this.CurrentWorksheet.SelectionRange, (r, c, cell) =>
+					this.CurrentWorksheet.RemoveCellTraceDependents(cell));
+
+			columnPropertiesToolStripMenuItem.Click += (s, e) =>
+			{
+				var worksheet = this.CurrentWorksheet;
+
+				int index = worksheet.SelectionRange.Col;
+				int count = worksheet.SelectionRange.Cols;
+
+				using (var hf = new HeaderPropertyDialog(RowOrColumn.Column))
+				{
+					var sampleHeader = worksheet.ColumnHeaders[index];
+
+					hf.HeaderText = sampleHeader.Text;
+					hf.HeaderTextColor = sampleHeader.TextColor ?? Color.Empty;
+					hf.DefaultCellBody = sampleHeader.DefaultCellBody;
+					hf.AutoFitToCell = sampleHeader.IsAutoWidth;
+
+					if (hf.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+					{
+						var newText = string.IsNullOrEmpty(hf.HeaderText) ? null : hf.HeaderText;
+
+						for (int i = index; i < index + count; i++)
+						{
+							var header = worksheet.ColumnHeaders[i];
+
+							if (string.IsNullOrEmpty(header.Text) || newText == null)
+							{
+								header.Text = newText;
+							}
+
+							header.TextColor = hf.HeaderTextColor;
+							header.DefaultCellBody = hf.DefaultCellBody;
+							header.IsAutoWidth = hf.AutoFitToCell;
+						}
+					}
+				}
+			};
+
+			rowPropertiesToolStripMenuItem.Click += (s, e) =>
+			{
+				var sheet = this.grid.CurrentWorksheet;
+
+				int index = sheet.SelectionRange.Row;
+				int count = sheet.SelectionRange.Rows;
+
+				using (var hpf = new HeaderPropertyDialog(RowOrColumn.Row))
+				{
+					var sampleHeader = sheet.RowHeaders[index];
+
+					hpf.HeaderText = sampleHeader.Text;
+					hpf.HeaderTextColor = sampleHeader.TextColor ?? Color.Empty;
+					hpf.DefaultCellBody = sampleHeader.DefaultCellBody;
+					hpf.RowHeaderWidth = sheet.RowHeaderWidth;
+					hpf.AutoFitToCell = sampleHeader.IsAutoHeight;
+
+					if (hpf.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+					{
+						var newText = string.IsNullOrEmpty(hpf.HeaderText) ? null : hpf.HeaderText;
+
+						for (int i = index; i < index + count; i++)
+						{
+							var header = sheet.RowHeaders[i];
+
+							if (string.IsNullOrEmpty(header.Text) || newText == null)
+							{
+								header.Text = newText;
+							}
+
+							header.TextColor = hpf.HeaderTextColor;
+							header.DefaultCellBody = hpf.DefaultCellBody;
+							header.IsAutoHeight = hpf.AutoFitToCell;
+						}
+
+						if (hpf.RowHeaderWidth != sheet.RowHeaderWidth)
+						{
+							sheet.RowHeaderWidth = hpf.RowHeaderWidth;
+						}
+					}
+				}
+			};
+
+			rowCutToolStripMenuItem.Click += this.cutRangeToolStripMenuItem_Click;
+			rowCopyToolStripMenuItem.Click += this.copyRangeToolStripMenuItem_Click;
+			rowPasteToolStripMenuItem.Click += this.pasteRangeToolStripMenuItem_Click;
+
+			colCutToolStripMenuItem.Click += this.cutRangeToolStripMenuItem_Click;
+			colCopyToolStripMenuItem.Click += this.copyRangeToolStripMenuItem_Click;
+			colPasteToolStripMenuItem.Click += this.pasteRangeToolStripMenuItem_Click;
+
+			rowFormatCellsToolStripMenuItem.Click += this.formatCellToolStripMenuItem_Click;
+			colFormatCellsToolStripMenuItem.Click += this.formatCellToolStripMenuItem_Click;
+
+			printSettingsToolStripMenuItem.Click += this.printSettingsToolStripMenuItem_Click;
+
+			printToolStripMenuItem.Click += PrintToolStripMenuItem_Click;
+
+			var noneTypeMenuItem = new ToolStripMenuItem(LangResource.None);
+			noneTypeMenuItem.Click += cellTypeNoneMenuItem_Click;
+			changeCellsTypeToolStripMenuItem.DropDownItems.Add(noneTypeMenuItem);
+			changeCellsTypeToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+
+			var noneTypeMenuItem2 = new ToolStripMenuItem(LangResource.None);
+			noneTypeMenuItem2.Click += cellTypeNoneMenuItem_Click;
+			changeCellsTypeToolStripMenuItem2.DropDownItems.Add(noneTypeMenuItem2);
+			changeCellsTypeToolStripMenuItem2.DropDownItems.Add(new ToolStripSeparator());
+
+			foreach (var cellType in CellTypesManager.CellTypes)
+			{
+				var name = cellType.Key;
+				if (name.EndsWith("Cell")) name = name.Substring(0, name.Length - 4);
+
+				var menuItem = new ToolStripMenuItem(name)
+				{
+					Tag = cellType.Value,
+				};
+
+				menuItem.Click += cellTypeMenuItem_Click;
+				changeCellsTypeToolStripMenuItem.DropDownItems.Add(menuItem);
+
+				var menuItem2 = new ToolStripMenuItem(name)
+				{
+					Tag = cellType.Value,
+				};
+
+				menuItem2.Click += cellTypeMenuItem_Click;
+				changeCellsTypeToolStripMenuItem2.DropDownItems.Add(menuItem2);
+			}
+
+			rowContextMenuStrip.Opening += (s, e) =>
+			{
+				insertRowPageBreakToolStripMenuItem.Enabled = !this.grid.CurrentWorksheet.PrintableRange.IsEmpty;
+				removeRowPageBreakToolStripMenuItem.Enabled = this.grid.CurrentWorksheet.RowPageBreaks.Contains(this.grid.CurrentWorksheet.FocusPos.Row);
+			};
+
+			columnContextMenuStrip.Opening += (s, e) =>
+			{
+				insertColPageBreakToolStripMenuItem.Enabled = !this.grid.CurrentWorksheet.PrintableRange.IsEmpty;
+				removeColPageBreakToolStripMenuItem.Enabled = this.grid.CurrentWorksheet.ColumnPageBreaks.Contains(this.grid.CurrentWorksheet.FocusPos.Col);
+			};
+
+			this.AutoFunctionSumToolStripMenuItem.Click += (s, e) => ApplyFunctionToSelectedRange("SUM");
+			this.AutoFunctionAverageToolStripMenuItem.Click += (s, e) => ApplyFunctionToSelectedRange("AVERAGE");
+			this.AutoFunctionCountToolStripMenuItem.Click += (s, e) => ApplyFunctionToSelectedRange("COUNT");
+			this.AutoFunctionMaxToolStripMenuItem.Click += (s, e) => ApplyFunctionToSelectedRange("MAX");
+			this.AutoFunctionMinToolStripMenuItem.Click += (s, e) => ApplyFunctionToSelectedRange("MIN");
+
+			this.focusStyleDefaultToolStripMenuItem.CheckedChanged += (s, e) =>
+				{
+					if (this.focusStyleDefaultToolStripMenuItem.Checked) this.CurrentWorksheet.FocusPosStyle = FocusPosStyle.Default;
+				};
+			this.focusStyleNoneToolStripMenuItem.CheckedChanged += (s, e) =>
+				{
+					if (focusStyleNoneToolStripMenuItem.Checked) this.CurrentWorksheet.FocusPosStyle = FocusPosStyle.None;
+				};
+
+#if EX_SCRIPT
+			scriptEditorToolStripMenuItem.Click += (s, e) =>
+			{
+				if (scriptEditor == null || scriptEditor.IsDisposed)
+				{
+					scriptEditor = new ReoScriptEditor();
+					scriptEditor.Srm = this.grid.Srm;
+
+					// synchronize script from the editor to control once the script is compiled 
+					scriptEditor.ScriptCompiled += (ss, ee) =>
+					{
+						this.grid.Script = scriptEditor.Script;
+					};
+				}
+
+				scriptEditor.Show();
+
+				if (this.grid.Script == null)
+				{
+					this.grid.Script = Resources._default;
+				}
+
+				scriptEditor.Script = this.grid.Script;
+
+				scriptEditor.Disposed += (ss, ee) => this.grid.Script = scriptEditor.Script;
+			};
+
+			runFunctionToolStripMenuItem.Click += (s, e) =>
+			{
+				using (var runFuncForm = new RunFunctionForm())
+				{
+					Cursor = Cursors.WaitCursor;
+
+					if (this.grid.Srm != null && this.grid.Script != null)
+					{
+						var compiledScript = this.grid.Srm.Compile(
+							scriptEditor.Visible ? scriptEditor.Script : this.grid.Script);
+						runFuncForm.Srm = this.grid.Srm;
+						runFuncForm.Script = compiledScript;
+					}
+
+					Cursor = Cursors.Default;
+
+					runFuncForm.ShowDialog(this);
+				}
+			};
+
+#else // !EX_SCRIPT
+
+			//scriptToolStripMenuItem.Visible = false;
+			scriptEditorToolStripMenuItem.Click += (s, e) =>
+			{
+				MessageBox.Show("Script execution is not supported by this edition.", Application.ProductName);
+			};
+#endif // EX_SCRIPT
+
+			homepageToolStripMenuItem.Click += (s, e) =>
+			{
+				try
+				{
+					Process.Start(LangResource.HP_Homepage);
+				}
+				catch { }
+			};
+
+			documentationToolStripMenuItem.Click += (s, e) =>
+			{
+				try
+				{
+					Process.Start(LangResource.HP_Homepage_Document);
+				}
+				catch { }
+			};
+
+			insertColPageBreakToolStripMenuItem.Click += insertColPageBreakToolStripMenuItem_Click;
+			insertRowPageBreakToolStripMenuItem.Click += insertRowPageBreakToolStripMenuItem_Click;
+			removeColPageBreakToolStripMenuItem.Click += removeColPageBreakToolStripMenuItem_Click;
+			removeRowPageBreakToolStripMenuItem.Click += removeRowPageBreakToolStripMenuItem_Click;
+
+			filterToolStripMenuItem.Click += filterToolStripMenuItem_Click;
+			clearFilterToolStripMenuItem.Click += clearFilterToolStripMenuItem_Click;
+			columnFilterToolStripMenuItem.Click += filterToolStripMenuItem_Click;
+			clearColumnFilterToolStripMenuItem.Click += clearFilterToolStripMenuItem_Click;
+
+			this.grid.ExceptionHappened += (s, e) =>
+			{
+				if (e.Exception is RangeIntersectionException)
+				{
+					MessageBox.Show(this, LangResource.Msg_Range_Intersection_Exception,
+						"ReoGrid Editor", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+				}
+				else if (e.Exception is OperationOnReadonlyCellException)
+				{
+					MessageBox.Show(this, LangResource.Msg_Operation_Aborted,
+						"ReoGrid Editor", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+				}
+			};
+
+			this.grid.CurrentWorksheetChanged += (s, e) =>
+				{
+					UpdateMenuAndToolStrips();
+					worksheet_GridScaled(this.CurrentWorksheet, e);
+
+					UpdateWorksheetSettings(this.grid.CurrentWorksheet);
+					UpdateSelectionModeAndStyle();
+					UpdateSelectionForwardDirection();
+				};
+
+			this.grid.SettingsChanged += (s, e) =>
+				{
+					sheetSwitcherToolStripMenuItem.Checked = this.grid.HasSettings(WorkbookSettings.View_ShowSheetTabControl);
+					showHorizontaScrolllToolStripMenuItem.Checked = this.grid.HasSettings(WorkbookSettings.View_ShowHorScroll);
+					showVerticalScrollbarToolStripMenuItem.Checked = this.grid.HasSettings(WorkbookSettings.View_ShowVerScroll);
+				};
+
+			this.clearAllToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.All);
+			this.clearDataToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.Data);
+			this.clearDataFormatToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.DataFormat);
+			this.clearFormulaToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.Formula);
+			this.clearCellBodyToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.Body);
+			this.clearStylesToolStripMenuItem.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.Style);
+			this.clearBordersToolStripButton.Click += (s, e) =>
+				this.CurrentWorksheet.ClearRangeContent(this.CurrentSelectionRange, CellElementFlag.Border);
+
+			this.exportCurrentWorksheetToolStripMenuItem.Click += (s, e) => ExportAsCsv(RangePosition.EntireRange);
+			this.exportSelectedRangeToolStripMenuItem.Click += (s, e) => ExportAsCsv(CurrentSelectionRange);
+
+			this.dragToMoveRangeToolStripMenuItem.CheckedChanged += (s, e) => CurrentWorksheet.SetSettings(
+				WorksheetSettings.Edit_DragSelectionToMoveCells, this.dragToMoveRangeToolStripMenuItem.Checked);
+			this.dragToFillSerialToolStripMenuItem.CheckedChanged += (s, e) => CurrentWorksheet.SetSettings(
+				WorksheetSettings.Edit_DragSelectionToFillSerial, this.dragToFillSerialToolStripMenuItem.Checked);
+
+			this.suspendReferenceUpdatingToolStripMenuItem.CheckedChanged += (s, e) =>
+				this.CurrentWorksheet.SetSettings(WorksheetSettings.Formula_AutoUpdateReferenceCell,
+				!this.suspendReferenceUpdatingToolStripMenuItem.Checked);
+
+			this.recalculateWorksheetToolStripMenuItem.Click += (s, e) => this.CurrentWorksheet.Recalculate();
+
+#if RG_DEBUG
+
+			this.showDebugFormToolStripButton.Click += new System.EventHandler(this.showDebugFormToolStripButton_Click);
+
+			#region Debug Validation Events
+			this.grid.WorksheetInserted += (ss, ee) =>
+			{
+				var worksheet = ee.Worksheet;
+
+				worksheet.RowsInserted += (s, e) => _Debug_Auto_Validate_All((Worksheet)s);
+				worksheet.ColumnsInserted += (s, e) => _Debug_Auto_Validate_All((Worksheet)s);
+				worksheet.RowsDeleted += (s, e) => _Debug_Auto_Validate_All((Worksheet)s);
+				worksheet.ColumnsDeleted += (s, e) => _Debug_Auto_Validate_All((Worksheet)s);
+				worksheet.RangeMerged += (s, e) => _Debug_Auto_Validate_All((Worksheet)s);
+				worksheet.RangeUnmerged += (s, e) => _Debug_Auto_Validate_All((Worksheet)s, e.Range);
+				worksheet.AfterPaste += (s, e) => _Debug_Auto_Validate_All((Worksheet)s);
+			};
+
+			this.grid.Undid += (s, e) => _Debug_Auto_Validate_All(((BaseWorksheetAction)e.Action).Worksheet);
+			this.grid.Redid += (s, e) => _Debug_Auto_Validate_All(((BaseWorksheetAction)e.Action).Worksheet);
+
+			showDebugInfoToolStripMenuItem.Click += (s, e) =>
+			{
+				showDebugFormToolStripButton.PerformClick();
+				showDebugInfoToolStripMenuItem.Checked = showDebugFormToolStripButton.Checked;
+			};
+
+			validateBorderSpanToolStripMenuItem.Click += (s, e) => _Debug_Validate_BorderSpan(this.CurrentWorksheet, true);
+			validateMergedRangeToolStripMenuItem.Click += (s, e) => _Debug_Validate_Merged_Cell(this.CurrentWorksheet, true);
+			validateAllToolStripMenuItem.Click += (s, e) => _Debug_Validate_All(this.CurrentWorksheet, true);
+
+			#endregion // Debug Validation Events
+#endif // RG_DEBUG
+
+			ResumeLayout();
 		}
 
-/*
 		private void ExportAsCsv(RangePosition range)
 		{
 			using (SaveFileDialog dlg = new SaveFileDialog())
@@ -1078,6 +1783,7 @@ namespace unvell.ReoGrid.Editor
 			grid.Focus();
 		}
 
+/*
 		protected override void OnClosing(CancelEventArgs e)
 		{
 			base.OnClosing(e);
@@ -1089,6 +1795,7 @@ namespace unvell.ReoGrid.Editor
 			// this.CurrentWorksheet.Save("..\\..\\autosave.rgf");
 #endif // DEBUG
 		}
+*/
 
 		private void newToolStripMenuItem_Click(object sender, EventArgs e)
 		{
@@ -1830,10 +2537,12 @@ namespace unvell.ReoGrid.Editor
 		}
 #endif // DEBUG
 
+/*
 		protected override void OnShown(EventArgs e)
 		{
 			base.OnShown(e);
 		}
+*/
 
 		protected override void OnMove(EventArgs e)
 		{
@@ -1948,12 +2657,12 @@ namespace unvell.ReoGrid.Editor
 		#region Window
 		private void exitToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			Close();
+			//Close();
 		}
 
 		private void newWindowToolStripMenuItem_Click(object sender, EventArgs e)
 		{
-			new ReoGridEditor().Show();
+			//new ReoGridEditor().Show();
 		}
 
 		private void styleEditorToolStripMenuItem_Click(object sender, EventArgs e)
@@ -2250,6 +2959,5 @@ namespace unvell.ReoGrid.Editor
 		}
 
 #endif // DEBUG
-*/
 	}
 }

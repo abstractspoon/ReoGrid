@@ -113,8 +113,8 @@ namespace unvell.UIControls
 			{
 				g.FillPolygon(Brushes.Black, new Point[] { 
 					new Point(rect.Right-13, rect.Top+8),
-					new Point(rect.Right-4, rect.Top+8),
-					new Point(rect.Right-9, rect.Top+13),
+					new Point(rect.Right-5, rect.Top+8),
+					new Point(rect.Right-10, rect.Top+13),
 				});
 			}
 			catch { }

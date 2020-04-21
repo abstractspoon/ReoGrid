@@ -271,7 +271,7 @@ namespace unvell.ReoGrid.Demo
 
 				if (!string.IsNullOrEmpty(filename))
 				{
-					editor.CurrentFilePath = filename;
+					editor.EditorCtrl.CurrentFilePath = filename;
 				}
 
 				editor.Show();

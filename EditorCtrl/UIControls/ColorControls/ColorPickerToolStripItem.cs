@@ -141,9 +141,9 @@ namespace unvell.UIControls
 			try
 			{
 				g.FillPolygon(SystemBrushes.WindowText, new Point[] { 
-					new Point(rect.Right-12, rect.Top+10),
-					new Point(rect.Right-3, rect.Top+10),
-					new Point(rect.Right-8, rect.Top+15),
+					new Point(rect.Right-12, rect.Top+9),
+					new Point(rect.Right-3, rect.Top+9),
+					new Point(rect.Right-8, rect.Top+14),
 				});
 
 				g.DrawLine(SystemPens.ControlDarkDark, rect.Right - 16, rect.Top + 3, rect.Right - 16, rect.Bottom - 4);
