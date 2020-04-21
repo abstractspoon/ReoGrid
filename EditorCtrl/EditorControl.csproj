@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>unvell.ReoGrid.Editor</RootNamespace>
-    <AssemblyName>unvell.ReoGridEditorCtrl</AssemblyName>
+    <AssemblyName>unvell.ReoGridEditorControl</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
@@ -188,11 +188,11 @@
     <Compile Include="PropertyPages\ProtectionPage.Designer.cs">
       <DependentUpon>ProtectionPage.cs</DependentUpon>
     </Compile>
-    <Compile Include="ReoGridEditorCtrl.cs">
+    <Compile Include="ReoGridEditorControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="ReoGridEditorCtrl.Designer.cs">
-      <DependentUpon>ReoGridEditorCtrl.cs</DependentUpon>
+    <Compile Include="ReoGridEditorControl.Designer.cs">
+      <DependentUpon>ReoGridEditorControl.cs</DependentUpon>
     </Compile>
     <Compile Include="ResizeGridDialog.cs">
       <SubType>Form</SubType>
@@ -324,8 +324,8 @@
     <EmbeddedResource Include="PropertyPages\ProtectionPage.resx">
       <DependentUpon>ProtectionPage.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ReoGridEditorCtrl.resx">
-      <DependentUpon>ReoGridEditorCtrl.cs</DependentUpon>
+    <EmbeddedResource Include="ReoGridEditorControl.resx">
+      <DependentUpon>ReoGridEditorControl.cs</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="ResizeGridDialog.resx">

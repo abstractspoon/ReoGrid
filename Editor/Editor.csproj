@@ -132,9 +132,9 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EditorCtrl\EditorCtrl.csproj">
+    <ProjectReference Include="..\EditorCtrl\EditorControl.csproj">
       <Project>{8307dffb-7e57-42b4-b402-601a80923f4e}</Project>
-      <Name>EditorCtrl</Name>
+      <Name>EditorControl</Name>
     </ProjectReference>
     <ProjectReference Include="..\ReoGrid\ReoGrid.csproj">
       <Project>{8b62357a-abbc-4db0-8633-f1d6a6c1ea53}</Project>

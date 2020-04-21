@@ -55,7 +55,7 @@ namespace unvell.ReoGrid.Editor
 			this.rangeInfoToolStripStatusLabel = new System.Windows.Forms.ToolStripStatusLabel();
 			this.leadHeaderContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
 			this.resetAllPageBreaksToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-			this.editorCtrl = new unvell.ReoGrid.Editor.ReoGridEditorCtrl();
+			this.editorCtrl = new unvell.ReoGrid.Editor.ReoGridEditorControl();
 			this.statusStrip1.SuspendLayout();
 			this.leadHeaderContextMenuStrip.SuspendLayout();
 			this.SuspendLayout();
@@ -134,7 +134,7 @@ namespace unvell.ReoGrid.Editor
 		private System.Windows.Forms.ToolStripStatusLabel rangeInfoToolStripStatusLabel;
 		private System.Windows.Forms.ContextMenuStrip leadHeaderContextMenuStrip;
 		private System.Windows.Forms.ToolStripMenuItem resetAllPageBreaksToolStripMenuItem1;
-		private ReoGridEditorCtrl editorCtrl;
+		private ReoGridEditorControl editorCtrl;
 	}
 }
 

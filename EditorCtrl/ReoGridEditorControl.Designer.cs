@@ -20,7 +20,7 @@ using unvell.UIControls;
 
 namespace unvell.ReoGrid.Editor
 {
-	partial class ReoGridEditorCtrl
+	partial class ReoGridEditorControl
 	{
 		/// <summary>
 		/// Required designer variable.
@@ -49,7 +49,7 @@ namespace unvell.ReoGrid.Editor
 		private void InitializeComponent()
 		{
 			this.components = new System.ComponentModel.Container();
-			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ReoGridEditorCtrl));
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ReoGridEditorControl));
 			this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
 			this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
 			this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();

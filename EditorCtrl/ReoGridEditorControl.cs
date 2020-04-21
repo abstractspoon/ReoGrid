@@ -55,7 +55,7 @@ namespace unvell.ReoGrid.Editor
 	/// <summary>
 	/// Represents Editor of ReoGrid component.
 	/// </summary>
-	public partial class ReoGridEditorCtrl : UserControl
+	public partial class ReoGridEditorControl : UserControl
 	{
 		#region Constructor
 
@@ -68,7 +68,7 @@ namespace unvell.ReoGrid.Editor
 		/// <summary>
 		/// Create instance of ReoGrid Editor.
 		/// </summary>
-		public ReoGridEditorCtrl()
+		public ReoGridEditorControl()
 		{
 			InitializeComponent();
 

@@ -59,7 +59,7 @@ namespace unvell.ReoGrid.Editor
 	{
 		//private NamedRangeManageForm nameManagerForm = null;
 
-		public ReoGridEditorCtrl EditorCtrl
+		public ReoGridEditorControl EditorCtrl
 		{
 			get { return editorCtrl; }
 		}
